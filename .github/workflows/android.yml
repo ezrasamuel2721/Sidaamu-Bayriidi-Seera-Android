@@ -25,6 +25,31 @@ jobs:
           curl -fL --retry 3 --retry-delay 2 "https://sidaamu-bayriidi-seera.vercel.app/" -o app/src/main/assets/index.html
           test -s app/src/main/assets/index.html
 
+      - name: Bundle remote images for offline use
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import re, os, urllib.request, hashlib
+          p = "app/src/main/assets/index.html"
+          html = open(p, encoding="utf-8").read()
+          urls = sorted(set(re.findall(r'https?://[^"\\'\\s)<>]+?\\.(?:png|jpe?g|webp|gif)(?:\\?[^"\\'\\s)<>]*)?', html, re.I)))
+          os.makedirs("app/src/main/assets/images", exist_ok=True)
+          for url in urls:
+              try:
+                  ext = re.search(r'\\.(png|jpe?g|webp|gif)', url, re.I).group(1).lower()
+                  if ext == "jpeg": ext = "jpg"
+                  name = hashlib.sha256(url.encode()).hexdigest()[:16] + "." + ext
+                  dest = "app/src/main/assets/images/" + name
+                  req = urllib.request.Request(url, headers={"User-Agent":"Mozilla/5.0"})
+                  with urllib.request.urlopen(req, timeout=30) as r, open(dest, "wb") as f:
+                      f.write(r.read())
+                  html = html.replace(url, "images/" + name)
+              except Exception as e:
+                  print("image skip:", url, e)
+          open(p, "w", encoding="utf-8").write(html)
+          print("bundled image candidates:", len(urls))
+          PY
+
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4
         with:
