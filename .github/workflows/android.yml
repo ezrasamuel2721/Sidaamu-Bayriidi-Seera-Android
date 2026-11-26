@@ -32,7 +32,8 @@ jobs:
           import re, os, urllib.request, hashlib
           p = "app/src/main/assets/index.html"
           html = open(p, encoding="utf-8").read()
-          urls = sorted(set(re.findall(r'https?://[^"\\'\\s)<>]+?\\.(?:png|jpe?g|webp|gif)(?:\\?[^"\\'\\s)<>]*)?', html, re.I)))
+          urls = sorted(set(re.findall(r'https?://[^"\\s)<>]+', html, re.I)))
+          urls = [u for u in urls if re.search(r'\\.(png|jpe?g|webp|gif)(?:\\?|$)', u, re.I)]
           os.makedirs("app/src/main/assets/images", exist_ok=True)
           for url in urls:
               try:
